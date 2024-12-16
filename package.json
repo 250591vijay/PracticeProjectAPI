@@ -1,0 +1,15 @@
+{
+  "name": "projectapi",
+  "version": "1.0.0",
+  "description": "APIProject",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index"
+  },
+  "author": "APIProject",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.1",
+    "nodemon": "^3.1.7"
+  }
+}

@@ -1,0 +1,11 @@
+GET/users -HTML Document Render
+GET/api/users - List all usersJSON
+GET/api/users/1 - Get user by idJSON
+GET/api/users/2  -Get user by idJSON
+GET/api/users/:id - Get user by idJSON
+:id -dynamically 
+Dynamic path parameters
+GET/api/users/id
+POST/api/users -Create new user
+PATCH/api/users/1 -Edit the user with ID 1
+DELETE/users/1 - Delete the user with ID 1
