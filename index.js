@@ -1,57 +1,138 @@
-const express = require("express")
-const fs =require("fs");
-const users = require("./MOCK_DATA.json");
+const express = require("express");
+const fs = require("fs");
+const mongoose = require("mongoose");
+//const users = require("./MOCK_DATA.json");
 const app = express();
 const port = 8010;
 
+//Schema
+const userSchema = new mongoose.Schema({
+  firstName: {
+    type: String,
+    required: true,
+  },
+  lastName: {
+    type: String,
+  },
+  email: {
+    type: String,
+    unique: true,
+    required: true,
+  },
+  gender: {
+    type: String,
+  },
+  jobTitle: {
+    type: String,
+  },
+  
+},{timestamps:true});
+// Connection
+mongoose
+  .connect("mongodb://127.0.0.1:27017/youtube-app-1")
+  .then(() => {
+    console.log("Connected to DB");
+  })
+  .catch((error) => {
+    console.log("Mongo Error", error);
+  });
+
+//Model
+const User = mongoose.model("user", userSchema);
+
+//Middleware
 //It is type of Plug in/ middleware
 // Post man m jo x-www-form-urlencoded waha s data laega
+// use of middle ware
 app.use(express.urlencoded({extende:false}));
+app.use((req,res,next)=>{
+  fs.appendFile("log.txt",`\n ${Date.now()}:${req.ip}:${req.method}:${req.url}\n`,(err,data)=>{
+    next();
+  });
+});
+//Route
 
 // REST API
-app.get("/api/users",(req,res)=>{
-  res.setHeader("X-MyName","Viyaan");//Custom Header in Response
+app.get("/api/users", async(req, res) => {
+  const allDbUsers = await User.find({});
+  res.setHeader("X-MyName", "Viyaan"); //Custom Header in Response
   // Always add X to custom headers
-    return res.json(users);
+  // This will use for mock data which define as users
+  //return res.json(users);
+
+  // This return from DB
+  return res.json(allDbUsers);
 });
-// // app.get("/api/users/:id",(req,res)=>{
-// //     const id = Number(req.params.id);
-// //     const user = users.find((user)=> user.id ===id);
-// //     return res.json(user);
-// //   });
+// app.get("/api/users/:id",(req,res)=>{
+//     const id = Number(req.params.id);
+//     const user = users.find((user)=> user.id ===id);
+//     return res.json(user);
+//   });
 
 //Route
 app
-.route("/api/users/:id")
-.get((req,res)=>{
-    const id = Number(req.params.id);
-    const user = users.find((user)=> user.id ===id);
-   // return res.json(user);
-   if(!user){
-    res.status(402).json({Error: "User not found"});
-   }
-    return res.status(201).json({Status:"Sucess",Detail:user});
-  })
-.patch((req,res)=>{
-  return res.json({status:"Pending"});
-})
-.delete((req,res)=>{
-    return res.json({status:"Deleted"});
-})
-
-app.post("/api/users",(req,res)=>{
-    const body = req.body;
-    if(!body || !body.first_name || !body.last_name||!body.email||!body.gender||!body.job_title){
-      return res.status(400).json({Message:"Fill the correct parameter"});
+  .route("/api/users/:id")
+  .get(async(req, res) => {
+    // Without Database
+    // This will use for mock data which define as users
+    // const id = Number(req.params.id);
+    // const user = users.find((user) => user.id === id);
+    // return res.json(user);
+    // With Database
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      res.status(402).json({ Error: "User not found" });
     }
-   users.push({...body,id:users.length+1});
-   fs.writeFile("./MOCK_DATA.json",JSON.stringify(users),(err,data)=>{
-    // if(err){
-    //     return res.status(500).json({status:"Error",message:"Failed to add in JSon file"});
-    // }
-    //return res.json({status:"Sucess",id:users.length});
-    return res.status(201).json({status:"Sucess",id:users.length});
-   });
-});
+    return res.status(201).json({ Status: "Sucess", Detail: user });
+  })
+  // With Database
+  .patch(async (req, res) => {
+    //return res.json({ status: "Pending" });
+    await user.findByIdAndUpdate(req.params.id,{lastName:"chnaged"});
+    return res.json({Status:"Updated Sucessfully"});
+  })
+  .delete(async (req, res) => {
+    await User.findByIdAndDelete(req.params.id);
+     return res.json({ status: "Deleted Sucessfully" });
+   // return res.json({ status: "Deleted" });
+  });
 
-app.listen(port,()=>{console.log(`Server Started at port:${port}`)})
+//app.post("/api/users", (req, res) => {
+  app.post("/api/users", async (req, res) => {
+  const body = req.body;
+  if (
+    !body ||
+    !body.first_name ||
+    !body.last_name ||
+    !body.email ||
+    !body.gender ||
+    !body.job_title
+  ) {
+    return res.status(400).json({ Message: "Fill the correct parameter" });
+  }
+  //Without Database
+  // users.push({ ...body, id: users.length + 1 });
+  // fs.writeFile("./MOCK_DATA.json", JSON.stringify(users), (err, data) => {
+  //   // if(err){
+  //   //     return res.status(500).json({status:"Error",message:"Failed to add in JSon file"});
+  //   // }
+  //   //return res.json({status:"Sucess",id:users.length});
+  //   return res.status(201).json({ status: "Success", id: users.length });
+  // });
+
+  // To insert data in database user
+  const result= await User.create({
+    firstName: body.first_name,
+    lastName: body.last_name,
+    email: body.email,
+    gender: body.gender,
+    jobTitle: body.job_title,
+  });
+  console.log("result",result)
+    return res.status(201).json({Msg:"Success"})
+  
+ });
+
+app.listen(port, () => {
+  console.log(`Server Started at port:${port}`);
+});
